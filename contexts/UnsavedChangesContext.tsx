@@ -6,7 +6,9 @@ import { toast } from "sonner";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface ChangeLogEntry {
+  id?: string;
   date: string;
+  timestamp?: number;
   key: string;
   oldValue: string;
   newValue: string;
@@ -27,8 +29,8 @@ export type UnsavedContextType = {
   publishAll: () => Promise<void>;
   /** True while publish is in flight */
   isPublishing: boolean;
-  /** History of published config changes */
-  changeHistory: ChangeLogEntry[];
+  /** Increments after every successful publish — ConfigChangesTable watches this to refetch */
+  historyVersion: number;
 };
 
 // ─── Context ─────────────────────────────────────────────────────────────────
@@ -37,22 +39,10 @@ const UnsavedChangesContext = createContext<UnsavedContextType | null>(null);
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
-const HISTORY_KEY = "calourie_config_history";
-
-function loadHistory(): ChangeLogEntry[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(HISTORY_KEY);
-    return raw ? (JSON.parse(raw) as ChangeLogEntry[]) : [];
-  } catch {
-    return [];
-  }
-}
-
 export function UnsavedChangesProvider({ children }: { children: React.ReactNode }) {
   const [pendingChanges, setPendingChanges] = useState<Record<string, string>>({});
   const [isPublishing, setIsPublishing] = useState(false);
-  const [changeHistory, setChangeHistory] = useState<ChangeLogEntry[]>(loadHistory);
+  const [historyVersion, setHistoryVersion] = useState(0);
 
   const setChange = useCallback((key: string, value: string) => {
     setPendingChanges((prev) => ({ ...prev, [key]: value }));
@@ -97,7 +87,7 @@ export function UnsavedChangesProvider({ children }: { children: React.ReactNode
         oldValues[key] = param?.defaultValue?.value ?? "";
       }
 
-      // Publish
+      // Publish to Remote Config
       const updates = Object.fromEntries(entries);
       const res = await fetch("/api/remote-config/set", {
         method: "POST",
@@ -113,7 +103,7 @@ export function UnsavedChangesProvider({ children }: { children: React.ReactNode
         throw new Error(data?.error ?? "Failed to save configuration. Please try again.");
       }
 
-      // Record changes in history
+      // Save history to Firestore
       const today = new Date().toISOString().split("T")[0];
       const newEntries: ChangeLogEntry[] = entries.map(([key, newValue]) => ({
         date: today,
@@ -122,13 +112,17 @@ export function UnsavedChangesProvider({ children }: { children: React.ReactNode
         newValue,
       }));
 
-      setChangeHistory((prev) => {
-        const updated = [...newEntries, ...prev].slice(0, 50);
-        localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
-        return updated;
+      await fetch("/api/config-history", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ entries: newEntries }),
       });
 
       setPendingChanges({});
+      setHistoryVersion((v) => v + 1);
       toast.success("Configuration published successfully.");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to save configuration. Please try again.";
@@ -141,8 +135,8 @@ export function UnsavedChangesProvider({ children }: { children: React.ReactNode
   const hasChanges = useMemo(() => Object.keys(pendingChanges).length > 0, [pendingChanges]);
 
   const value = useMemo<UnsavedContextType>(
-    () => ({ pendingChanges, setChange, removeChange, hasChanges, discardAll, publishAll, isPublishing, changeHistory }),
-    [pendingChanges, setChange, removeChange, hasChanges, discardAll, publishAll, isPublishing, changeHistory]
+    () => ({ pendingChanges, setChange, removeChange, hasChanges, discardAll, publishAll, isPublishing, historyVersion }),
+    [pendingChanges, setChange, removeChange, hasChanges, discardAll, publishAll, isPublishing, historyVersion]
   );
 
   return (
