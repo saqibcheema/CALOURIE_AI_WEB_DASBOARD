@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
@@ -19,7 +19,9 @@ function MaintenanceBanner() {
   const { fetchWithAuth } = useAuthFetch();
   const [fetchedOn, setFetchedOn] = useState(false);
   const [isFetched, setIsFetched] = useState(false);
+  const hadPendingMaintenance = useRef(false);
 
+  // Initial fetch on mount
   useEffect(() => {
     fetchWithAuth("/api/remote-config/get")
       .then((r) => r.json())
@@ -30,6 +32,21 @@ function MaintenanceBanner() {
       })
       .catch(() => setIsFetched(true));
   }, [fetchWithAuth]);
+
+  // Re-fetch after maintenance_mode publish completes (pending change cleared)
+  useEffect(() => {
+    const hasNow = pendingChanges["maintenance_mode"] !== undefined;
+    if (!hasNow && hadPendingMaintenance.current) {
+      fetchWithAuth("/api/remote-config/get")
+        .then((r) => r.json())
+        .then((data) => {
+          const val = data.parameters?.maintenance_mode?.defaultValue?.value;
+          setFetchedOn(val === "true");
+        })
+        .catch(() => {});
+    }
+    hadPendingMaintenance.current = hasNow;
+  }, [pendingChanges, fetchWithAuth]);
 
   const pendingOn = pendingChanges["maintenance_mode"] === "true";
   const showBanner = isFetched && (pendingOn || fetchedOn);

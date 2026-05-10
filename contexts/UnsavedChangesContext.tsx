@@ -5,6 +5,13 @@ import { toast } from "sonner";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+export interface ChangeLogEntry {
+  date: string;
+  key: string;
+  oldValue: string;
+  newValue: string;
+}
+
 export type UnsavedContextType = {
   /** All staged changes: Remote Config key → new JSON-string value */
   pendingChanges: Record<string, string>;
@@ -20,6 +27,8 @@ export type UnsavedContextType = {
   publishAll: () => Promise<void>;
   /** True while publish is in flight */
   isPublishing: boolean;
+  /** History of published config changes */
+  changeHistory: ChangeLogEntry[];
 };
 
 // ─── Context ─────────────────────────────────────────────────────────────────
@@ -28,9 +37,22 @@ const UnsavedChangesContext = createContext<UnsavedContextType | null>(null);
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
+const HISTORY_KEY = "calourie_config_history";
+
+function loadHistory(): ChangeLogEntry[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    return raw ? (JSON.parse(raw) as ChangeLogEntry[]) : [];
+  } catch {
+    return [];
+  }
+}
+
 export function UnsavedChangesProvider({ children }: { children: React.ReactNode }) {
   const [pendingChanges, setPendingChanges] = useState<Record<string, string>>({});
   const [isPublishing, setIsPublishing] = useState(false);
+  const [changeHistory, setChangeHistory] = useState<ChangeLogEntry[]>(loadHistory);
 
   const setChange = useCallback((key: string, value: string) => {
     setPendingChanges((prev) => ({ ...prev, [key]: value }));
@@ -55,7 +77,6 @@ export function UnsavedChangesProvider({ children }: { children: React.ReactNode
     setIsPublishing(true);
 
     try {
-      // Get current Firebase ID token for server-side auth verification
       const { getAuth } = await import("firebase/auth");
       const firebaseAuth = getAuth();
       const idToken = await firebaseAuth.currentUser?.getIdToken();
@@ -64,7 +85,19 @@ export function UnsavedChangesProvider({ children }: { children: React.ReactNode
         throw new Error("Not authenticated. Please sign in again.");
       }
 
-      // Batch all pending changes into a single request
+      // Fetch current config to record old values
+      const getRes = await fetch("/api/remote-config/get", {
+        headers: { Authorization: `Bearer ${idToken}` },
+      });
+      const currentConfig = getRes.ok ? await getRes.json() : { parameters: {} };
+
+      const oldValues: Record<string, string> = {};
+      for (const [key] of entries) {
+        const param = currentConfig.parameters?.[key];
+        oldValues[key] = param?.defaultValue?.value ?? "";
+      }
+
+      // Publish
       const updates = Object.fromEntries(entries);
       const res = await fetch("/api/remote-config/set", {
         method: "POST",
@@ -80,6 +113,21 @@ export function UnsavedChangesProvider({ children }: { children: React.ReactNode
         throw new Error(data?.error ?? "Failed to save configuration. Please try again.");
       }
 
+      // Record changes in history
+      const today = new Date().toISOString().split("T")[0];
+      const newEntries: ChangeLogEntry[] = entries.map(([key, newValue]) => ({
+        date: today,
+        key,
+        oldValue: oldValues[key] ?? "",
+        newValue,
+      }));
+
+      setChangeHistory((prev) => {
+        const updated = [...newEntries, ...prev].slice(0, 50);
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
+        return updated;
+      });
+
       setPendingChanges({});
       toast.success("Configuration published successfully.");
     } catch (err) {
@@ -93,8 +141,8 @@ export function UnsavedChangesProvider({ children }: { children: React.ReactNode
   const hasChanges = useMemo(() => Object.keys(pendingChanges).length > 0, [pendingChanges]);
 
   const value = useMemo<UnsavedContextType>(
-    () => ({ pendingChanges, setChange, removeChange, hasChanges, discardAll, publishAll, isPublishing }),
-    [pendingChanges, setChange, removeChange, hasChanges, discardAll, publishAll, isPublishing]
+    () => ({ pendingChanges, setChange, removeChange, hasChanges, discardAll, publishAll, isPublishing, changeHistory }),
+    [pendingChanges, setChange, removeChange, hasChanges, discardAll, publishAll, isPublishing, changeHistory]
   );
 
   return (
