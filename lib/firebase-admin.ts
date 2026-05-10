@@ -22,3 +22,4 @@ if (!admin.apps.length) {
 
 export const adminAuth = admin.auth();
 export const remoteConfig = admin.remoteConfig();
+export const db = admin.firestore();

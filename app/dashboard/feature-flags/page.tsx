@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { IconToggleLeft, IconAlertTriangle } from "@tabler/icons-react";
+import { IconAlertTriangle } from "@tabler/icons-react";
 import { useUnsavedChanges } from "@/contexts/UnsavedChangesContext";
 import { useAuthFetch } from "@/lib/useAuthFetch";
 
@@ -14,7 +14,6 @@ const FEATURE_FLAGS = [
   { key: "chat_history",     label: "Chat History",      description: "Persistent conversation history" },
 ] as const;
 
-type FlagKey = (typeof FEATURE_FLAGS)[number]["key"];
 type FlagValue = { enabled: boolean; disabled_until?: string };
 type FlagsConfig = Record<string, FlagValue>;
 
