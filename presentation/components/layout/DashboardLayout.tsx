@@ -9,6 +9,7 @@ import { Header } from "./Header";
 import { Toaster } from "sonner";
 import { UnsavedChangesProvider, useUnsavedChanges } from "@/contexts/UnsavedChangesContext";
 import { UnsavedBar } from "@/components/UnsavedBar";
+import { ProfileModal } from "@/components/ProfileModal";
 import { useAuthFetch } from "@/lib/useAuthFetch";
 import { IconAlertTriangle } from "@tabler/icons-react";
 
@@ -76,6 +77,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -83,23 +86,35 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     }
   }, [user, loading, router]);
 
+  // Close mobile sidebar on resize to md+
+  useEffect(() => {
+    const onResize = () => {
+      if (window.innerWidth >= 768) setIsMobileOpen(false);
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
   const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
+    if (window.innerWidth < 768) {
+      setIsMobileOpen((v) => !v);
+    } else {
+      setIsSidebarOpen((v) => !v);
+    }
   };
 
   if (loading) {
-    // Skeleton UI loader
     return (
       <div className="flex h-screen bg-arctic-50 animate-pulse">
-        <div className="w-[218px] bg-white border-r border-arctic-100 hidden md:block"></div>
+        <div className="w-[218px] bg-white border-r border-arctic-100 hidden md:block" />
         <div className="flex-1 flex flex-col">
-          <div className="h-16 bg-white border-b border-arctic-100"></div>
+          <div className="h-16 bg-white border-b border-arctic-100" />
           <div className="p-6">
-            <div className="h-8 bg-arctic-100 rounded-md w-1/4 mb-6"></div>
+            <div className="h-8 bg-arctic-100 rounded-md w-1/4 mb-6" />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="h-32 bg-white rounded-card border border-arctic-100"></div>
-              <div className="h-32 bg-white rounded-card border border-arctic-100"></div>
-              <div className="h-32 bg-white rounded-card border border-arctic-100"></div>
+              <div className="h-32 bg-white rounded-card border border-arctic-100" />
+              <div className="h-32 bg-white rounded-card border border-arctic-100" />
+              <div className="h-32 bg-white rounded-card border border-arctic-100" />
             </div>
           </div>
         </div>
@@ -107,27 +122,47 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!user) {
-    return null; // Will redirect in useEffect
-  }
+  if (!user) return null;
 
   return (
     <UnsavedChangesProvider>
       <div className="min-h-screen bg-arctic-50">
-        <Sidebar isOpen={isSidebarOpen} />
-        <Header toggleSidebar={toggleSidebar} isOpen={isSidebarOpen} />
+
+        {/* Mobile backdrop */}
+        {isMobileOpen && (
+          <div
+            className="fixed inset-0 z-30 bg-slate-900/40 md:hidden"
+            onClick={() => setIsMobileOpen(false)}
+          />
+        )}
+
+        <Sidebar
+          isOpen={isMobileOpen || isSidebarOpen}
+          onProfileOpen={() => setProfileOpen(true)}
+          onMobileClose={() => setIsMobileOpen(false)}
+        />
+
+        <Header
+          toggleSidebar={toggleSidebar}
+          isOpen={isSidebarOpen}
+          isMobileOpen={isMobileOpen}
+        />
 
         <main
-          className={`pt-16 transition-all ${
+          className={`pt-16 transition-all duration-300 ${
             isSidebarOpen ? "md:ml-[218px]" : "md:ml-[64px]"
           }`}
         >
           <MaintenanceBanner />
-          <div className="p-6 pb-24">{children}</div>
+          <div className="p-4 sm:p-6 pb-24">{children}</div>
         </main>
 
         <UnsavedBar />
         <Toaster position="bottom-right" richColors />
+
+        {profileOpen && (
+          <ProfileModal onClose={() => setProfileOpen(false)} />
+        )}
       </div>
     </UnsavedChangesProvider>
   );
