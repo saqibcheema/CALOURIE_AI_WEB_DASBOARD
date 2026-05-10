@@ -14,12 +14,14 @@ import {
 } from "@tabler/icons-react";
 
 interface SidebarProps {
-  isOpen: boolean;
+  isMobileOpen: boolean;
+  isDesktopExpanded: boolean;
   onProfileOpen: () => void;
   onMobileClose: () => void;
 }
 
-export function Sidebar({ isOpen, onProfileOpen, onMobileClose }: SidebarProps) {
+export function Sidebar({ isMobileOpen, isDesktopExpanded, onProfileOpen, onMobileClose }: SidebarProps) {
+  const showLabels = isMobileOpen || isDesktopExpanded;
   const pathname = usePathname();
   const { user, signOut } = useAuth();
   const email = user?.email ?? "";
@@ -37,16 +39,18 @@ export function Sidebar({ isOpen, onProfileOpen, onMobileClose }: SidebarProps) 
   return (
     <aside
       className={`fixed top-0 left-0 z-40 h-screen transition-all duration-300 ${
-        isOpen
+        isMobileOpen
           ? "translate-x-0 w-[218px]"
-          : "-translate-x-full w-[218px] md:translate-x-0 md:w-[64px]"
+          : isDesktopExpanded
+            ? "-translate-x-full md:translate-x-0 w-[218px]"
+            : "-translate-x-full md:translate-x-0 w-[218px] md:w-[64px]"
       } bg-white border-r border-arctic-100 flex flex-col`}
       aria-label="Sidebar"
     >
       {/* Logo */}
       <div className="h-16 flex items-center justify-center border-b border-arctic-100 flex-shrink-0">
         <span className="text-xl font-bold text-arctic-600 truncate px-4">
-          {isOpen ? "Calourie AI" : "CA"}
+          {showLabels ? "Calourie AI" : "CA"}
         </span>
       </div>
 
@@ -71,7 +75,7 @@ export function Sidebar({ isOpen, onProfileOpen, onMobileClose }: SidebarProps) 
                       isActive ? "text-arctic-600" : "text-slate-400 group-hover:text-arctic-600"
                     }`}
                   />
-                  {isOpen && (
+                  {showLabels && (
                     <span className="ms-3 text-sm whitespace-nowrap">{link.name}</span>
                   )}
                 </Link>
@@ -83,7 +87,7 @@ export function Sidebar({ isOpen, onProfileOpen, onMobileClose }: SidebarProps) 
 
       {/* Profile section */}
       <div className="border-t border-arctic-100 p-3 flex-shrink-0">
-        {isOpen ? (
+        {showLabels ? (
           <div className="flex items-center gap-2">
             <button
               onClick={onProfileOpen}

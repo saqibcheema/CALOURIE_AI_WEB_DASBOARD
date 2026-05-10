@@ -137,7 +137,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         )}
 
         <Sidebar
-          isOpen={isMobileOpen || isSidebarOpen}
+          isMobileOpen={isMobileOpen}
+          isDesktopExpanded={isSidebarOpen}
           onProfileOpen={() => setProfileOpen(true)}
           onMobileClose={() => setIsMobileOpen(false)}
         />
