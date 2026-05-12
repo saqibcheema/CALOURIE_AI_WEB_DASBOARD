@@ -36,18 +36,27 @@ The **Calourie AI Admin Dashboard** is a centralized web interface for managing 
 ## Features
 
 ### 1. Overview Dashboard
+
+![Overview Dashboard](docs/screenshots/02-overview.png)
+
 - 4 stat cards with real data: **Meals Logged**, **AI Vision Uses**, **Barcode Scans**, **Unique Devices**
 - 7-day sparkline chart showing meal log trends
 - Week-over-week percentage change indicators (up/down arrows)
 - Recent config changes history table with old vs new values
 
 ### 2. API Keys Management
+
+![API Keys Management](docs/screenshots/04-api-keys.png)
+
 - Add, edit, and delete LLM provider API keys
 - Key masking with show/hide toggle for security
 - Automatic cross-sync with AI Models page
 - Visual badges for "Model set" and "No model config" warnings
 
 ### 3. AI Models Configuration
+
+![AI Models Configuration](docs/screenshots/05-ai-models.png)
+
 - Tabbed interface per provider (e.g., OpenAI, Gemini, Anthropic)
 - Adjustable model parameters:
   - **Model Name** — e.g. `gpt-4o`, `gemini-1.5-pro`
@@ -57,6 +66,9 @@ The **Calourie AI Admin Dashboard** is a centralized web interface for managing 
 - Warning banners when API key is missing
 
 ### 4. Feature Flags
+
+![Feature Flags](docs/screenshots/06-feature-flags.png)
+
 - Toggle 4 core features on/off with animated switches:
   - AI Vision (camera-based food recognition)
   - Barcode Scanning
@@ -67,6 +79,9 @@ The **Calourie AI Admin Dashboard** is a centralized web interface for managing 
 - Changes are batched and published via the bottom bar
 
 ### 5. Maintenance Mode
+
+![Maintenance Mode](docs/screenshots/07-maintenance.png)
+
 - Toggle maintenance mode ON/OFF with a large switch
 - Custom maintenance message textarea for user-facing text
 - Force update controls:
@@ -75,6 +90,9 @@ The **Calourie AI Admin Dashboard** is a centralized web interface for managing 
 - Real-time banner across all pages when maintenance is active
 
 ### 6. Analytics
+
+![Analytics](docs/screenshots/03-analytics.png)
+
 - 4 stat cards with real Firestore data
 - Interactive 7-day bar chart with metric tabs:
   - Meals Logged
@@ -84,6 +102,9 @@ The **Calourie AI Admin Dashboard** is a centralized web interface for managing 
 - Responsive chart powered by Recharts
 
 ### 7. User Profile
+
+![User Profile](docs/screenshots/08-profile-modal.png)
+
 - Circular avatar in sidebar with email display
 - **Password change** with current password re-authentication
 - Secure Firebase Auth `updatePassword()` integration
@@ -160,19 +181,7 @@ graph TB
 
 ## Screenshots
 
-> Add screenshots to `docs/screenshots/` folder with these filenames to auto-display:
-
-| Screenshot | Description |
-|-----------|-------------|
-| `01-login.png` | Login page with email/password |
-| `02-overview.png` | Dashboard Overview with stat cards |
-| `03-analytics.png` | Analytics page with bar chart |
-| `04-api-keys.png` | API Keys management |
-| `05-ai-models.png` | AI Models tabbed configuration |
-| `06-feature-flags.png` | Feature Flags toggle switches |
-| `07-maintenance.png` | Maintenance mode controls |
-| `08-profile-modal.png` | Profile modal / password change |
-| `09-mobile-sidebar.png` | Mobile responsive sidebar |
+All dashboard interfaces are documented inline in the [Features](#features) section above. The screenshots are stored in the `docs/screenshots/` directory for reference.
 
 ---
 
